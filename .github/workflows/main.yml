@@ -3,12 +3,12 @@ name: Generate Slides
 on:
   push:
     paths:
-      - 'spec.md'       # spec.md が変更された時だけ動く
-      - 'generate_slides.py' # スクリプト修正時も動く
-  workflow_dispatch:    # 手動実行ボタンも有効にする
+      - 'specs/**.md'        # specsフォルダ内の全mdファイルを監視
+      - 'generate_slides.py' # スクリプト修正時も実行
+  workflow_dispatch:
 
 permissions:
-  contents: write       # 生成したファイルをコミットする権限
+  contents: write
 
 jobs:
   build:
@@ -35,5 +35,5 @@ jobs:
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: "Auto-generated slides by Gemini"
-          file_pattern: 'slides.md'
+          commit_message: "Auto-generated slides for updated specs"
+          file_pattern: 'marp/*.md' # marpフォルダ内の全mdファイルをコミット対象に
