@@ -4,7 +4,7 @@ import time
 
 # --- 設定 ---
 FILE_KEY = 'bxE0kCXyrW8ouvarTmHbz6'
-NODE_ID = '3-83'
+NODE_ID = '3-83' # URLのまま(ハイフン)でOKです
 OUTPUT_DIR = 'marp'
 IMAGE_DIR_NAME = 'images'
 OUTPUT_FILENAME = 'figma_image_slide.md'
@@ -26,8 +26,8 @@ headers = {"X-Figma-Token": FIGMA_API_KEY}
 
 print(f"Requesting image rendering for node {NODE_ID}...")
 
-# 1. 画像レンダリングAPIを叩いて画像URLを取得
-# scale=2 で少し高解像度で取得します（スライドで見やすくするため）
+# 1. 画像レンダリングAPIを叩く
+# APIリクエスト時はハイフンのままでもFigmaが解釈してくれます
 render_url = f"https://api.figma.com/v1/images/{FILE_KEY}?ids={NODE_ID}&format=png&scale=2"
 
 try:
@@ -35,19 +35,24 @@ try:
     response.raise_for_status()
     data = response.json()
     
-    # 画像URLの抽出
-    image_url = data['images'].get(NODE_ID)
+    api_node_id = NODE_ID.replace('-', ':')
+    
+    image_url = data['images'].get(api_node_id)
+    
+    # 万が一、元のID(ハイフン)で返ってきた場合の保険
     if not image_url:
-        print(f"Error: Failed to generate image URL for node {NODE_ID}.")
+        image_url = data['images'].get(NODE_ID)
+
+    if not image_url:
+        print(f"Error: Failed to generate image URL for node {NODE_ID} (checked as {api_node_id}).")
         print(f"API Response: {data}")
         exit(1)
+    # ----------------------------------------
         
     print(f"Image rendered. Downloading from: {image_url}")
 
-    # 2. 画像の実データをダウンロードして保存
-    # レンダリング直後はS3への反映に少し時間がかかることがあるため、念のため少し待機
+    # 2. 画像の実データをダウンロード
     time.sleep(2)
-    
     image_response = requests.get(image_url)
     image_response.raise_for_status()
     
@@ -64,8 +69,6 @@ except requests.exceptions.RequestException as e:
 # 3. Marp用Markdownの生成
 print(f"Generating Marp markdown at {md_output_path}...")
 
-# Marpで画像を表示するためのMarkdown
-# 画面中央に配置し、サイズを調整するスタイルを適用
 markdown_content = f"""---
 marp: true
 theme: default
